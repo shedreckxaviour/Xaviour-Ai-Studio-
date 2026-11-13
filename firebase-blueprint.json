@@ -1,0 +1,146 @@
+{
+  "entities": {
+    "VideoProject": {
+      "title": "VideoProject",
+      "description": "An AI explainer or documentary video project owned by a user (Free-Only Mode).",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Firebase Auth UID" },
+        "title": { "type": "string", "description": "Display project title" },
+        "prompt": { "type": "string", "description": "Original single user prompt" },
+        "durationMinutes": { "type": "integer", "description": "Target duration (3, 5, 10, 15)" },
+        "aspectRatio": { "type": "string", "enum": ["16:9", "9:16", "1:1"] },
+        "videoStyle": { "type": "string", "description": "Visual documentary/explainer style" },
+        "language": { "type": "string", "enum": ["English", "Telugu", "Hindi"] },
+        "narrationStyle": { "type": "string", "description": "Voice storytelling tone" },
+        "status": { "type": "string", "enum": ["draft", "script_ready", "generating", "completed", "error"] },
+        "currentStageIndex": { "type": "integer", "description": "0..10 real-time pipeline stage" },
+        "scriptTopic": { "type": "string" },
+        "targetAudience": { "type": "string" },
+        "scriptOutline": { "type": "string" },
+        "openingHook": { "type": "string" },
+        "conclusion": { "type": "string" },
+        "youtubeTitle": { "type": "string" },
+        "youtubeDescription": { "type": "string" },
+        "hashtags": { "type": "array", "description": "Up to 15 YouTube hashtags" },
+        "thumbnailText": { "type": "string" },
+        "factCheckNotes": { "type": "string" },
+        "sourcesOrUncertaintyNotes": { "type": "string" },
+        "estimatedNarrationSeconds": { "type": "integer" },
+        "freeModeUsed": { "type": "boolean" },
+        "modelUsed": { "type": "string", "enum": ["gemini-3.8-flash", "gemini-3.5-flash-lite"] },
+        "visualSourceMode": { "type": "string", "enum": ["free_animated_slides", "user_images_and_slides", "mixed"] },
+        "brandingEnabled": { "type": "boolean" },
+        "outroDurationSec": { "type": "integer" },
+        "backgroundMusicName": { "type": "string" },
+        "localVideoPath": { "type": "string" },
+        "localAudioPath": { "type": "string" },
+        "localSrtPath": { "type": "string" },
+        "localThumbnailPath": { "type": "string" },
+        "estimatedSizeBytes": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp" }
+      },
+      "required": [
+        "userId", "title", "prompt", "durationMinutes", "aspectRatio",
+        "videoStyle", "language", "narrationStyle", "status",
+        "currentStageIndex", "freeModeUsed", "modelUsed",
+        "visualSourceMode", "brandingEnabled", "outroDurationSec",
+        "estimatedSizeBytes", "createdAt", "updatedAt"
+      ]
+    },
+    "VideoScene": {
+      "title": "VideoScene",
+      "description": "An individual timed scene within a VideoProject.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "projectId": { "type": "string" },
+        "sceneIndex": { "type": "integer" },
+        "title": { "type": "string" },
+        "narration": { "type": "string" },
+        "visualPrompt": { "type": "string" },
+        "estimatedSeconds": { "type": "integer" },
+        "factType": { "type": "string", "enum": ["verified_fact", "scientific_context", "speculation_labeled"] },
+        "visualSourceType": { "type": "string", "enum": ["free_motion_slide", "user_uploaded_image", "pending"] },
+        "status": { "type": "string", "enum": ["pending", "visual_ready", "audio_ready", "completed", "error"] },
+        "accentHex": { "type": "string" },
+        "userImagePath": { "type": "string" },
+        "localImagePath": { "type": "string" },
+        "localAudioPath": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "userId", "projectId", "sceneIndex", "title", "narration",
+        "visualPrompt", "estimatedSeconds", "factType", "visualSourceType",
+        "status", "createdAt", "updatedAt"
+      ]
+    },
+    "UsageLog": {
+      "title": "UsageLog",
+      "description": "Audit log of Free-Mode AI model calls and local media steps.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "projectId": { "type": "string" },
+        "modelName": { "type": "string" },
+        "operation": { "type": "string" },
+        "isFreeTier": { "type": "boolean" },
+        "estimatedTokens": { "type": "integer" },
+        "status": { "type": "string", "enum": ["success", "quota_exhausted", "blocked_paid_policy", "user_cancelled", "error"] },
+        "detail": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "projectId", "modelName", "operation", "isFreeTier", "estimatedTokens", "status", "createdAt"]
+    },
+    "StudioSettings": {
+      "title": "StudioSettings",
+      "description": "User preferences for Free Mode, Xaviour Explains branding, and export quality.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "freeModeEnabled": { "type": "boolean" },
+        "preferredTextModel": { "type": "string", "enum": ["gemini-3.8-flash", "gemini-3.5-flash-lite"] },
+        "preferredVoiceGender": { "type": "string", "enum": ["female", "male"] },
+        "preferredLanguage": { "type": "string", "enum": ["English", "Telugu", "Hindi"] },
+        "speakingSpeed": { "type": "number" },
+        "brandingEnabled": { "type": "boolean" },
+        "channelName": { "type": "string" },
+        "outroTagline": { "type": "string" },
+        "outroDurationSec": { "type": "integer" },
+        "logoPosition": { "type": "string", "enum": ["top_center", "top_left", "top_right", "center", "bottom_right"] },
+        "logoSize": { "type": "string", "enum": ["small", "medium", "large"] },
+        "backgroundMusicEnabled": { "type": "boolean" },
+        "exportResolution": { "type": "string", "enum": ["720p", "1080p"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "userId", "freeModeEnabled", "preferredTextModel",
+        "preferredVoiceGender", "preferredLanguage", "speakingSpeed",
+        "brandingEnabled", "channelName", "outroTagline",
+        "outroDurationSec", "backgroundMusicEnabled", "exportResolution",
+        "createdAt", "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/projects/{projectId}": {
+      "schema": { "$ref": "#/entities/VideoProject" },
+      "description": "User-owned video creation projects"
+    },
+    "/users/{userId}/projects/{projectId}/scenes/{sceneId}": {
+      "schema": { "$ref": "#/entities/VideoScene" },
+      "description": "Scenes belonging to a video project"
+    },
+    "/users/{userId}/usageLogs/{logId}": {
+      "schema": { "$ref": "#/entities/UsageLog" },
+      "description": "API usage and free quota tracking logs"
+    },
+    "/users/{userId}/studioSettings/{settingId}": {
+      "schema": { "$ref": "#/entities/StudioSettings" },
+      "description": "User studio configuration and branding preferences"
+    }
+  }
+}

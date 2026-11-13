@@ -1,0 +1,278 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Core primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidOptString(data, key, maxLen) {
+      return !(key in data) || (data[key] is string && data[key].size() <= maxLen);
+    }
+
+    function isValidVideoProject(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 160 &&
+             data.prompt is string && data.prompt.size() >= 1 && data.prompt.size() <= 2000 &&
+             data.durationMinutes is int && data.durationMinutes in [3, 5, 10, 15] &&
+             data.aspectRatio is string && data.aspectRatio in ['16:9', '9:16', '1:1'] &&
+             data.videoStyle is string && data.videoStyle.size() >= 1 && data.videoStyle.size() <= 80 &&
+             data.language is string && data.language in ['English', 'Telugu', 'Hindi'] &&
+             data.narrationStyle is string && data.narrationStyle.size() >= 1 && data.narrationStyle.size() <= 80 &&
+             data.status is string && data.status in ['draft', 'script_ready', 'generating', 'completed', 'error'] &&
+             data.currentStageIndex is int && data.currentStageIndex >= 0 && data.currentStageIndex <= 10 &&
+             data.freeModeUsed is bool && data.freeModeUsed == true &&
+             data.modelUsed is string && data.modelUsed in ['gemini-3.8-flash', 'gemini-3.5-flash-lite'] &&
+             data.visualSourceMode is string && data.visualSourceMode in ['free_animated_slides', 'user_images_and_slides', 'mixed'] &&
+             data.brandingEnabled is bool &&
+             data.outroDurationSec is int && data.outroDurationSec >= 2 && data.outroDurationSec <= 15 &&
+             data.estimatedSizeBytes is int && data.estimatedSizeBytes >= 0 &&
+             (!('estimatedNarrationSeconds' in data) || (data.estimatedNarrationSeconds is int && data.estimatedNarrationSeconds >= 0 && data.estimatedNarrationSeconds <= 36000)) &&
+             isValidOptString(data, 'scriptTopic', 300) &&
+             isValidOptString(data, 'targetAudience', 300) &&
+             isValidOptString(data, 'scriptOutline', 3000) &&
+             isValidOptString(data, 'openingHook', 1500) &&
+             isValidOptString(data, 'conclusion', 1500) &&
+             isValidOptString(data, 'youtubeTitle', 140) &&
+             isValidOptString(data, 'youtubeDescription', 4000) &&
+             isValidOptString(data, 'thumbnailText', 120) &&
+             isValidOptString(data, 'factCheckNotes', 2000) &&
+             isValidOptString(data, 'sourcesOrUncertaintyNotes', 2000) &&
+             isValidOptString(data, 'backgroundMusicName', 200) &&
+             isValidOptString(data, 'localVideoPath', 500) &&
+             isValidOptString(data, 'localAudioPath', 500) &&
+             isValidOptString(data, 'localSrtPath', 500) &&
+             isValidOptString(data, 'localThumbnailPath', 500) &&
+             (!('hashtags' in data) || (data.hashtags is list && data.hashtags.size() <= 15 && (data.hashtags.size() == 0 || data.hashtags[0] is string)));
+    }
+
+    function isValidVideoScene(data, userId, projectId) {
+      return data.userId is string && data.userId == userId &&
+             data.projectId is string && data.projectId == projectId &&
+             data.sceneIndex is int && data.sceneIndex >= 0 && data.sceneIndex <= 100 &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 160 &&
+             data.narration is string && data.narration.size() <= 4000 &&
+             data.visualPrompt is string && data.visualPrompt.size() <= 2000 &&
+             data.estimatedSeconds is int && data.estimatedSeconds >= 2 && data.estimatedSeconds <= 300 &&
+             data.factType is string && data.factType in ['verified_fact', 'scientific_context', 'speculation_labeled'] &&
+             data.visualSourceType is string && data.visualSourceType in ['free_motion_slide', 'user_uploaded_image', 'pending'] &&
+             data.status is string && data.status in ['pending', 'visual_ready', 'audio_ready', 'completed', 'error'] &&
+             isValidOptString(data, 'accentHex', 20) &&
+             isValidOptString(data, 'userImagePath', 500) &&
+             isValidOptString(data, 'localImagePath', 500) &&
+             isValidOptString(data, 'localAudioPath', 500);
+    }
+
+    function isValidUsageLog(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.projectId is string && data.projectId.size() <= 128 &&
+             data.modelName is string && data.modelName.size() >= 1 && data.modelName.size() <= 80 &&
+             data.operation is string && data.operation.size() >= 1 && data.operation.size() <= 80 &&
+             data.isFreeTier is bool && data.isFreeTier == true &&
+             data.estimatedTokens is int && data.estimatedTokens >= 0 &&
+             data.status is string && data.status in ['success', 'quota_exhausted', 'blocked_paid_policy', 'user_cancelled', 'error'] &&
+             isValidOptString(data, 'detail', 300);
+    }
+
+    function isValidStudioSettings(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.freeModeEnabled is bool && data.freeModeEnabled == true &&
+             data.preferredTextModel is string && data.preferredTextModel in ['gemini-3.8-flash', 'gemini-3.5-flash-lite'] &&
+             data.preferredVoiceGender is string && data.preferredVoiceGender in ['female', 'male'] &&
+             data.preferredLanguage is string && data.preferredLanguage in ['English', 'Telugu', 'Hindi'] &&
+             data.speakingSpeed is number && data.speakingSpeed >= 0.5 && data.speakingSpeed <= 2.0 &&
+             data.brandingEnabled is bool &&
+             data.channelName is string && data.channelName.size() >= 1 && data.channelName.size() <= 80 &&
+             data.outroTagline is string && data.outroTagline.size() >= 1 && data.outroTagline.size() <= 120 &&
+             data.outroDurationSec is int && data.outroDurationSec >= 2 && data.outroDurationSec <= 15 &&
+             (!('logoPosition' in data) || (data.logoPosition is string && data.logoPosition in ['top_center', 'top_left', 'top_right', 'center', 'bottom_right'])) &&
+             (!('logoSize' in data) || (data.logoSize is string && data.logoSize in ['small', 'medium', 'large'])) &&
+             data.backgroundMusicEnabled is bool &&
+             data.exportResolution is string && data.exportResolution in ['720p', '1080p'];
+    }
+
+    match /users/{userId}/projects/{projectId} {
+      allow list: if isOwner(userId);
+      allow get: if isOwner(userId) && isValidId(projectId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(projectId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'title', 'prompt', 'durationMinutes', 'aspectRatio',
+                         'videoStyle', 'language', 'narrationStyle', 'status',
+                         'currentStageIndex', 'freeModeUsed', 'modelUsed',
+                         'visualSourceMode', 'brandingEnabled', 'outroDurationSec',
+                         'estimatedSizeBytes', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'title', 'prompt', 'durationMinutes', 'aspectRatio',
+                         'videoStyle', 'language', 'narrationStyle', 'status',
+                         'currentStageIndex', 'scriptTopic', 'targetAudience', 'scriptOutline',
+                         'openingHook', 'conclusion', 'youtubeTitle', 'youtubeDescription',
+                         'hashtags', 'thumbnailText', 'factCheckNotes', 'sourcesOrUncertaintyNotes',
+                         'estimatedNarrationSeconds', 'freeModeUsed',
+                         'modelUsed', 'visualSourceMode', 'brandingEnabled',
+                         'outroDurationSec', 'backgroundMusicName', 'localVideoPath', 'localAudioPath',
+                         'localSrtPath', 'localThumbnailPath', 'estimatedSizeBytes',
+                         'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       isValidVideoProject(incoming(), userId);
+
+      allow update: if isOwner(userId) &&
+                       isValidId(projectId) &&
+                       isValidVideoProject(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       (
+                         // Action 1: Rename / update project metadata & script
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'title', 'durationMinutes', 'aspectRatio', 'videoStyle',
+                           'language', 'narrationStyle', 'scriptTopic', 'targetAudience',
+                           'scriptOutline', 'openingHook', 'conclusion', 'youtubeTitle', 'youtubeDescription',
+                           'hashtags', 'thumbnailText', 'factCheckNotes', 'sourcesOrUncertaintyNotes',
+                           'estimatedNarrationSeconds', 'brandingEnabled',
+                           'outroDurationSec', 'backgroundMusicName', 'updatedAt'
+                         ]) ||
+                         // Action 2: Update generation pipeline status & output artifacts
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'title', 'status', 'currentStageIndex', 'scriptTopic', 'targetAudience',
+                           'scriptOutline', 'openingHook', 'conclusion', 'youtubeTitle', 'youtubeDescription',
+                           'hashtags', 'thumbnailText', 'factCheckNotes', 'sourcesOrUncertaintyNotes',
+                           'estimatedNarrationSeconds', 'freeModeUsed',
+                           'modelUsed', 'visualSourceMode', 'backgroundMusicName', 'localVideoPath', 'localAudioPath',
+                           'localSrtPath', 'localThumbnailPath', 'estimatedSizeBytes', 'updatedAt'
+                         ])
+                       );
+
+      allow delete: if isOwner(userId) && isValidId(projectId);
+
+      match /scenes/{sceneId} {
+        allow list: if isOwner(userId) && isValidId(projectId);
+        allow get: if isOwner(userId) && isValidId(projectId) && isValidId(sceneId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(projectId) &&
+                         isValidId(sceneId) &&
+                         exists(/databases/$(database)/documents/users/$(userId)/projects/$(projectId)) &&
+                         incoming().keys().hasAll([
+                           'userId', 'projectId', 'sceneIndex', 'title', 'narration',
+                           'visualPrompt', 'estimatedSeconds', 'factType',
+                           'visualSourceType', 'status', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'projectId', 'sceneIndex', 'title', 'narration',
+                           'visualPrompt', 'estimatedSeconds', 'factType',
+                           'visualSourceType', 'status', 'accentHex', 'userImagePath',
+                           'localImagePath', 'localAudioPath', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                         incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                         isValidVideoScene(incoming(), userId, projectId);
+
+        allow update: if isOwner(userId) &&
+                         isValidId(projectId) &&
+                         isValidId(sceneId) &&
+                         isValidVideoScene(incoming(), userId, projectId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().projectId == existing().projectId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'sceneIndex', 'title', 'narration', 'visualPrompt',
+                           'estimatedSeconds', 'factType', 'visualSourceType',
+                           'status', 'accentHex', 'userImagePath', 'localImagePath', 'localAudioPath', 'updatedAt'
+                         ]);
+
+        allow delete: if isOwner(userId) && isValidId(projectId) && isValidId(sceneId);
+      }
+    }
+
+    match /users/{userId}/usageLogs/{logId} {
+      allow list: if isOwner(userId);
+      allow get: if isOwner(userId) && isValidId(logId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(logId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'projectId', 'modelName', 'operation',
+                         'isFreeTier', 'estimatedTokens', 'status', 'createdAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'projectId', 'modelName', 'operation',
+                         'isFreeTier', 'estimatedTokens', 'status', 'detail', 'createdAt'
+                       ]) &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                       isValidUsageLog(incoming(), userId);
+
+      allow update: if false;
+      allow delete: if isOwner(userId) && isValidId(logId);
+    }
+
+    match /users/{userId}/studioSettings/{settingId} {
+      allow list: if isOwner(userId);
+      allow get: if isOwner(userId) && isValidId(settingId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(settingId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'freeModeEnabled', 'preferredTextModel',
+                         'preferredVoiceGender', 'preferredLanguage', 'speakingSpeed',
+                         'brandingEnabled', 'channelName', 'outroTagline',
+                         'outroDurationSec', 'backgroundMusicEnabled', 'exportResolution',
+                         'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'freeModeEnabled', 'preferredTextModel',
+                         'preferredVoiceGender', 'preferredLanguage', 'speakingSpeed',
+                         'brandingEnabled', 'channelName', 'outroTagline',
+                         'outroDurationSec', 'logoPosition', 'logoSize',
+                         'backgroundMusicEnabled', 'exportResolution',
+                         'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       isValidStudioSettings(incoming(), userId);
+
+      allow update: if isOwner(userId) &&
+                       isValidId(settingId) &&
+                       isValidStudioSettings(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'freeModeEnabled', 'preferredTextModel', 'preferredVoiceGender',
+                         'preferredLanguage', 'speakingSpeed', 'brandingEnabled',
+                         'channelName', 'outroTagline', 'outroDurationSec',
+                         'logoPosition', 'logoSize',
+                         'backgroundMusicEnabled', 'exportResolution', 'updatedAt'
+                       ]);
+
+      allow delete: if isOwner(userId) && isValidId(settingId);
+    }
+  }
+}
